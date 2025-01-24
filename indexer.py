@@ -23,7 +23,7 @@ class SpeechIndexer:
                 
             processed_text = self._apply_speakers_to_text(tagged_text, speakers_dict)
             
-            #self._update_context(processed_text)
+            self._update_context(processed_text)
             print("--------------------------------" + self.context + "--------------------------")
             
             return processed_text

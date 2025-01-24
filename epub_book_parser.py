@@ -29,10 +29,3 @@ class EpubParser:
             chunks.append(current_chunk.strip())
 
         return chunks
-
-'''
-if __name__ == "__main__":
-    parser = EpubParser(chunk_size=2000)
-    epub_file_path = "nebular_073_de_ePub3.epub"
-    chunks = parser.parse(epub_file_path)
-'''
