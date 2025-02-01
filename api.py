@@ -6,10 +6,33 @@ class OpenAIClient:
         openai_api_key = os.environ.get("OPENAI_API_KEY")
         self.client = OpenAI(api_key=openai_api_key)
 
+    def prescan(self, text):
+        prescan_prompt = f"""
+        Analyze the following text and identify all mentioned speakers and scenes.
+        Return ONLY all the speakers in the text in following format:
+        - Speaker 1 (e.g. John Doe)
+        - Speaker 2 (e.g. Jane)
+
+        Text:
+        {text}
+        """
+
+        response = self.client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": prescan_prompt},
+                {"role": "user", "content": text}
+            ],
+            model="gpt-3.5-turbo",
+            temperature=0.7
+        )
+
+        print(response.choices[0].message.content)
+        return response.choices[0].message.content
+
     def get_speakers(self, tagged_text, context):
-        """Analysiert den Text und identifiziert Sprecher für direkte Rede und Gedanken."""
         prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
+        Use the context to assign the correct speaker to each index, the context contains all speakers in the text.
         - Text enclosed in <speech index="X"> tags is direct speech. Assign the correct speaker to each index.
         - Text enclosed in <em index="X"> tags is internal thought. Assign the correct speaker to each index.
         - Each index must be mapped to a specific speaker based on the context.
@@ -63,7 +86,6 @@ class DeepSeekClient:
         self.client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
 
     def get_speakers(self, tagged_text, context):
-        """Analysiert den Text und identifiziert Sprecher für direkte Rede und Gedanken."""
         prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
         - Text enclosed in <speech index="X"> tags is direct speech. Assign the correct speaker to each index.

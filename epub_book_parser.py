@@ -1,6 +1,5 @@
 import ebooklib
 from ebooklib import epub
-from bs4 import BeautifulSoup
 import re
 
 class EpubParser:
@@ -15,7 +14,7 @@ class EpubParser:
 
         for item in content_items:
             content = item.get_content().decode('utf-8')
-            paragraphs = re.findall(r'<p[^>]*>.*?</p>', content, re.DOTALL)
+            paragraphs = re.findall(r'<p class="ps[56]">.*?</p>', content, re.DOTALL)
 
             for p in paragraphs:
                 if len(current_chunk) + len(p) > self.chunk_size:

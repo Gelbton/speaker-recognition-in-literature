@@ -14,8 +14,14 @@ class SpeechIndexer:
         self.context = ""
 
     def process_text(self, text):
+
+        prescan_summary = self.api_client.prescan(text)
+        
+        combined_context = f"{self.context}\n\n Use only following speakers:\n{prescan_summary}"
+
         tagged_text = self._find_and_tag_speech_and_thoughts(text)
-        speakers_response = self.api_client.get_speakers(tagged_text, self.context)
+        
+        speakers_response = self.api_client.get_speakers(tagged_text, combined_context)
 
         try:
             speakers_dict = json.loads(speakers_response)
@@ -25,11 +31,12 @@ class SpeechIndexer:
                 speakers_dict["thought"] = {}
 
             processed_text = self._apply_speakers_to_text(tagged_text, speakers_dict)
+            
             self._update_context(processed_text)
             return processed_text
             
         except json.JSONDecodeError as e:
-            print(f"Fehler beim Parsen der Api-Antwort: {str(e)}")
+            print(f"Fehler beim Parsen der API-Antwort: {str(e)}")
             return tagged_text
 
     def _find_and_tag_speech_and_thoughts(self, text):
@@ -58,5 +65,4 @@ class SpeechIndexer:
         return text
 
     def _update_context(self, processed_text):
-        """Holt eine kurze Zusammenfassung von der API, um den Kontext zu aktualisieren."""
         self.context = self.api_client.summarize_context(processed_text)
