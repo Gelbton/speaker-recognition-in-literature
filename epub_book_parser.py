@@ -18,7 +18,6 @@ class EpubParser:
             paragraphs = re.findall(r'<p[^>]*>.*?</p>', content, re.DOTALL)
 
             for p in paragraphs:
-                print(p)
                 if len(current_chunk) + len(p) > self.chunk_size:
                     chunks.append(current_chunk.strip())
                     current_chunk = p
