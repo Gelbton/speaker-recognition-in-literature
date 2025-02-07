@@ -12,34 +12,31 @@ class OpenAIClient:
         Return ONLY all the speakers in the text in following format:
         - Speaker 1 (e.g. John Doe)
         - Speaker 2 (e.g. Jane)
-
-        Text:
-        {text}
         """
-
+        messages = [
+            {"role": "system", "content": prescan_prompt},
+            {"role": "user", "content": text}
+        ]
         response = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prescan_prompt},
-                {"role": "user", "content": text}
-            ],
+            messages=messages,
             model="gpt-3.5-turbo",
             temperature=0.7
         )
 
-        print(response.choices[0].message.content)
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        print("Prescan:", result)
+        return result
 
-    def get_speakers(self, tagged_text, context):
-        prompt = f"""
+    def get_speakers(self, conversation_history):
+        speakers_prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
         Use the context to assign the correct speaker to each index, the context contains all speakers in the text.
-        - Text enclosed in <speech index="X"> tags is direct speech. Assign the correct speaker to each index.
-        - Text enclosed in <em index="X"> tags is internal thought. Assign the correct speaker to each index.
+        - ONLY the text enclosed in <speech index="X">»...«</speech> tags is direct speech. Assign the correct speaker to each index.
+        - Text enclosed in <em index="X">...</em> tags is internal thought. Assign the correct speaker to each index.
         - Each index must be mapped to a specific speaker based on the context.
         - If a speaker cannot be identified, use "Unknown".
-
-        Context:
-        {context}
+        Important: If there are no <speech index="X">»...«</speech> return an empty JS Object for 'speech'.
+        If there are no <em index="X">...</em> return an empty JS Object for 'thought'.
 
         Return JSON:
         {{
@@ -47,54 +44,72 @@ class OpenAIClient:
             "thought": {{"1": "speaker_name", "2": "speaker_name"}}
         }}
         """
-        
+        conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
         response = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": tagged_text}
-            ],
+            messages=conversation,
             model="gpt-3.5-turbo",
             temperature=0.7
         )
-
-        print(response.choices[0].message.content)
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        print("Get Speakers:", result)
+        return result
 
     def summarize_context(self, text):
         summary_prompt = f"""
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
         The context should contain all speakers in the text and the main events.
-        {text}
         """
 
+        messages = [
+            {"role": "system", "content": summary_prompt},
+            {"role": "user", "content": text}
+        ]
         response = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": summary_prompt},
-                {"role": "user", "content": text}
-            ],
+            messages=messages,
             model="gpt-3.5-turbo",
             temperature=0.7
         )
-
-        print(response.choices[0].message.content)
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        print("Summarize Context:", result)
+        return result
     
 class DeepSeekClient:
     def __init__(self):
         deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
         self.client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
 
-    def get_speakers(self, tagged_text, context):
-        prompt = f"""
+    def prescan(self, text):
+        prescan_prompt = f"""
+        Analyze the following text and identify all mentioned speakers and scenes.
+        Return ONLY all the speakers in the text in following format:
+        - Speaker 1 (e.g. John Doe)
+        - Speaker 2 (e.g. Jane)
+        """
+        messages = [
+            {"role": "system", "content": prescan_prompt},
+            {"role": "user", "content": text}
+        ]
+        response = self.client.chat.completions.create(
+            messages=messages,
+            model="deepseek-chat",
+            temperature=0.7
+        )
+
+        result = response.choices[0].message.content
+        print("Prescan:", result)
+        return result
+
+    def get_speakers(self, conversation_history):
+        speakers_prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
-        - Text enclosed in <speech index="X"> tags is direct speech. Assign the correct speaker to each index.
-        - Text enclosed in <em index="X"> tags is internal thought. Assign the correct speaker to each index.
+        Use the context to assign the correct speaker to each index, the context contains all speakers in the text.
+        - ONLY the text enclosed in <speech index="X">»...«</speech> tags is direct speech. Assign the correct speaker to each index.
+        - Text enclosed in <em index="X">...</em> tags is internal thought. Assign the correct speaker to each index.
         - Each index must be mapped to a specific speaker based on the context.
         - If a speaker cannot be identified, use "Unknown".
-
-        Context:
-        {context}
+        Important: If there are no <speech index="X">»...«</speech> return an empty JS Object for 'speech'.
+        If there are no <em index="X">...</em> return an empty JS Object for 'thought'.
 
         Return JSON:
         {{
@@ -102,33 +117,33 @@ class DeepSeekClient:
             "thought": {{"1": "speaker_name", "2": "speaker_name"}}
         }}
         """
-        
+        conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
         response = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": tagged_text}
-            ],
+            messages=conversation,
             model="deepseek-chat",
             temperature=0.7
         )
-
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        print("Get Speakers:", result)
+        return result
 
     def summarize_context(self, text):
         summary_prompt = f"""
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
         The context should contain all speakers in the text and the main events.
-        {text}    
         """
 
+        messages = [
+            {"role": "system", "content": summary_prompt},
+            {"role": "user", "content": text}
+        ]
         response = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": summary_prompt},
-                {"role": "user", "content": text}
-            ],
+            messages=messages,
             model="deepseek-chat",
             temperature=0.7
         )
-
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        print("Summarize Context:", result)
+        return result
+    
