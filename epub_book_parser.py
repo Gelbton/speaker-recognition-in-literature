@@ -2,58 +2,43 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import re
-
-import re
-import ebooklib
-from ebooklib import epub
+from item_chunk import Chunk
 
 class EpubParser:
     def __init__(self, chunk_size=2000):
         self.chunk_size = chunk_size
 
-
     def parse(self, book):
-        
-        content_items = book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
+        """
+        Parse the given book into chunks
+
+        Parameters:
+        book (ebooklib.epub.EpubBook): The EPUB book to parse.
+
+        Returns:
+        list: A list of Chunk objects.
+        """
+        content_items = book.get_items_of_type(ebooklib.ITEM_DOCUMENT) # list of .xhtml files
         chunks = []
         current_chunk = ""
-        current_chapter = None
-
-        # build chapter mapping from TOC (table of contents) to avoid chunks overlapping chapters
-        chapter_map = {}
-        for entry in book.toc:
-            # extract base filename from href (ignore anchor links) - test if this is robust enough in the future
-            href_base = entry.href.split('#')[0] # href_base is the .xhtml file a table entry would link (without sections)
-            chapter_map[href_base] = entry.title # chapter map is a dictionary mapping files to their respective chapters
+        item_index = 0
 
         for item in content_items:
-            item_name = item.get_name() 
-            new_chapter = chapter_map.get(item_name) # store current chapter/file we are reading in
-
-            # Chapter boundary detection
-            if new_chapter and new_chapter != current_chapter:
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
-                    current_chunk = ""
-                current_chapter = new_chapter
-                current_chunk += f"\n___CHAPTER_START___: {current_chapter}\n" # choosing triple underscore to avoid collision
-
             content = item.get_content().decode('utf-8')
-            paragraphs = re.findall(r'<p[^>]*>.*?</p>', content, re.DOTALL)
+            paragraphs = re.findall(r'<p[^>]*>.*?</p>', content, re.DOTALL) # DOTALL to include linebreaks
 
             for p in paragraphs:
-                cleaned_p = re.sub(r'<.*?>', '', p)  # Remove HTML tags
-                
-                if len(current_chunk) + len(cleaned_p) > self.chunk_size:
+                if len(current_chunk) + len(p) > self.chunk_size:
                     if current_chunk:
-                        chunks.append(current_chunk.strip())
-                    current_chunk = f"{current_chapter}\n" if current_chapter else ""
-                    current_chunk += cleaned_p
+                        chunks.append(Chunk(item_index, current_chunk.strip()))
+                    current_chunk = p
                 else:
-                    current_chunk += cleaned_p + "\n"
+                    current_chunk += p + "\n"
 
+            item_index += 1
+
+        # append the last chunk of the chapter as well
         if current_chunk:
-            chunks.append(current_chunk.strip())
+            chunks.append(Chunk(item_index-1, current_chunk.strip()))
 
         return chunks
-
