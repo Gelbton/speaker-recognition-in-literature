@@ -11,7 +11,7 @@ if __name__ == "__main__":
     processed_chunks = []
 
     for i, chunk in enumerate(chunks):
-        processed_chunk = indexer.process_text(chunk)
+        processed_chunk = indexer.process_text(chunk) # main processing function
         processed_chunks.append(processed_chunk)
 
         print(f"\nChunk {i+1}:")

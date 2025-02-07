@@ -6,6 +6,8 @@ class OpenAIClient:
         openai_api_key = os.environ.get("OPENAI_API_KEY")
         self.client = OpenAI(api_key=openai_api_key)
 
+    # prescan the text to get the speakers mentioned in it for each chunk
+    # the messages contain only the "system" message with the base prompt when prescanning
     def prescan(self, text):
         prescan_prompt = f"""
         Analyze the following text and identify all mentioned speakers and scenes.
@@ -27,6 +29,8 @@ class OpenAIClient:
         print("Prescan:", result)
         return result
 
+    # get the speakers from the API response
+    # the conversation history contains the base prompt, the prescan message and the text with tagged speech and thoughts for the current chunk with the speakers prompt
     def get_speakers(self, conversation_history):
         speakers_prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
@@ -54,6 +58,7 @@ class OpenAIClient:
         print("Get Speakers:", result)
         return result
 
+    # summarize the context to provide a brief overview of the text for the next chunk
     def summarize_context(self, text):
         summary_prompt = f"""
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
@@ -74,6 +79,7 @@ class OpenAIClient:
         print("Summarize Context:", result)
         return result
     
+# DeepSeek API client has the same methods as the OpenAI client
 class DeepSeekClient:
     def __init__(self):
         deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
