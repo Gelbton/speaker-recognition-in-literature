@@ -62,4 +62,3 @@ class Reparser:
     def save(self, output_filename):
         new_book = self.reparse()
         epub.write_epub(output_filename, new_book)
-
