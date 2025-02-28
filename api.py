@@ -83,8 +83,10 @@ class OpenAIClient:
 class DeepSeekClient:
     def __init__(self):
         deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
-        self.client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
+        self.client = OpenAI(api_key=deepseek_api_key)
 
+    # prescan the text to get the speakers mentioned in it for each chunk
+    # the messages contain only the "system" message with the base prompt when prescanning
     def prescan(self, text):
         prescan_prompt = f"""
         Analyze the following text and identify all mentioned speakers and scenes.
@@ -98,7 +100,7 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="deepseek-chat",
+            model="gpt-3.5-turbo",
             temperature=0.7
         )
 
@@ -106,6 +108,8 @@ class DeepSeekClient:
         print("Prescan:", result)
         return result
 
+    # get the speakers from the API response
+    # the conversation history contains the base prompt, the prescan message and the text with tagged speech and thoughts for the current chunk with the speakers prompt
     def get_speakers(self, conversation_history):
         speakers_prompt = f"""
         Analyze the following text and identify the speaker for each indexed speech and thought.
@@ -126,13 +130,14 @@ class DeepSeekClient:
         conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
         response = self.client.chat.completions.create(
             messages=conversation,
-            model="deepseek-chat",
+            model="gpt-3.5-turbo",
             temperature=0.7
         )
         result = response.choices[0].message.content
         print("Get Speakers:", result)
         return result
 
+    # summarize the context to provide a brief overview of the text for the next chunk
     def summarize_context(self, text):
         summary_prompt = f"""
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
@@ -146,10 +151,9 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="deepseek-chat",
+            model="gpt-3.5-turbo",
             temperature=0.7
         )
         result = response.choices[0].message.content
         print("Summarize Context:", result)
         return result
-    
