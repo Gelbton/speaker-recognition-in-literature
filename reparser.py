@@ -61,8 +61,4 @@ class Reparser:
 
     def save(self, output_filename):
         new_book = self.reparse()
-<<<<<<< HEAD
         epub.write_epub(output_filename, new_book)
-=======
-        epub.write_epub(output_filename, new_book)
->>>>>>> context-propagation
