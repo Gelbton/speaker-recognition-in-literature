@@ -1,9 +1,6 @@
 from itertools import groupby
 from operator import attrgetter
-<<<<<<< HEAD
-=======
 import ebooklib
->>>>>>> context-propagation
 from ebooklib import epub
 
 class Reparser:
