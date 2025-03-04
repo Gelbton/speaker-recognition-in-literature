@@ -1,5 +1,6 @@
 from itertools import groupby
 from operator import attrgetter
+import ebooklib
 from ebooklib import epub
 
 class Reparser:
@@ -8,55 +9,38 @@ class Reparser:
         self.chunks = chunks
 
     def reparse(self):
-        # output epub
-        new_book = epub.EpubBook()
-        self.copy_metadata(new_book)
-        # Group chunks by index
-        grouped_chunks = groupby(sorted(self.chunks, key=attrgetter('index')), key=attrgetter('index'))
+        new_book = self.book
 
-        # Create new items for the modified content
-        new_items = []
-        for index, group in grouped_chunks:
-            print("\n")
-            print("\n")
-            print(index)
-            print("\n")
-            print("\n")
-            # Combine all chunk contents for this index
-            combined_content = ''.join(chunk.get_content() for chunk in group)
-            print("Inhalt in Kapitel: " + "\n" + combined_content)
-            item = epub.EpubHtml(file_name=f'body{index}.xhtml')
-            item.content = combined_content
-            new_book.add_item(item)
-            new_items.append(item)
+        # Group chunks by item index
+        chunk_dict = {}
+        for chunk in self.chunks:
+            item_index = int(chunk.get_index().split('.')[0])
+            if item_index not in chunk_dict:
+                chunk_dict[item_index] = []
+            chunk_dict[item_index].append(chunk)
 
-        # Add the items to the book's spine
-        new_book.spine = ['nav'] + new_items
+        print(f"Number of chunk groups: {len(chunk_dict)}")
+        for index, chunks in chunk_dict.items():
+            print(f"Chunk group index: {index}, number of chunks: {len(chunks)}")
 
-        # Add navigation files
-        new_book.add_item(epub.EpubNcx())
-        new_book.add_item(epub.EpubNav())
+        html_items = list(new_book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
+        print(f"Number of HTML items: {len(html_items)}")
+
+        for i, item in enumerate(html_items):
+            print(f"Processing item {i}: {item.file_name}")
+
+            # Find the corresponding chunk group
+            chunk_group = chunk_dict.get(i, None)
+
+            if chunk_group:
+                print(f"Found chunk group for index {i}")
+                combined_content = ''.join(chunk.get_content() for chunk in chunk_group)
+                print(f"New content preview: {combined_content[:100]}...")
+                item.set_content(combined_content.encode('utf-8'))
+            else:
+                print(f"No chunk group found for index {i}")
 
         return new_book
-
-    
-    # copies metadata into new book
-    def copy_metadata(self, new_book):
-        for namespace in self.book.metadata:
-            for name, values in self.book.metadata[namespace].items():
-                for value, others in values:
-                    if namespace == 'DC':  # if block for Dublin Core metadata
-                        if name == 'title':
-                            print("title: \n " + value)
-                            new_book.set_title(value)
-                        elif name == 'language':
-                            print("language: \n " + value)
-                            new_book.set_language(value)
-                        else:
-                            new_book.add_metadata('DC', name, value, others)
-                    else:  # handling of all other metadata formats/standards
-                        print("\nelse case: " + namespace, name, value, others)
-                        new_book.add_metadata(namespace, name, value, others)
 
 
     def save(self, output_filename):

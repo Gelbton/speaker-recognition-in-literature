@@ -1,11 +1,11 @@
 
 
 class Chunk:
-    def __init__(self, index: int, content: str):
+    def __init__(self, index: str, content: str):
         self.index = index
         self.content = content
 
-    def get_index(self) -> int:
+    def get_index(self) -> str:
         return self.index
 
     def get_content(self) -> str:
