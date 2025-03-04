@@ -38,9 +38,16 @@ class OpenAIClient:
         - ONLY the text enclosed in <speech index="X">»...«</speech> tags is direct speech. Assign the correct speaker to each index.
         - Text enclosed in <em index="X">...</em> tags is internal thought. Assign the correct speaker to each index.
         - Each index must be mapped to a specific speaker based on the context.
+<<<<<<< HEAD
+        - If a speaker cannot be identified, try making a sophisticated guess based on context or if you have no clue, use "Unknown".
+
+        Context:
+        {context}
+=======
         - If a speaker cannot be identified, use "Unknown".
         Important: If there are no <speech index="X">»...«</speech> return an empty JS Object for 'speech'.
         If there are no <em index="X">...</em> return an empty JS Object for 'thought'.
+>>>>>>> context-propagation
 
         Return JSON:
         {{
@@ -64,6 +71,13 @@ class OpenAIClient:
         Summarize the following text in one or two short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
         The context should contain all speakers in the text and the main events.
+<<<<<<< HEAD
+        If you detect a significant change in context such as a new scenery or a major timeskip you
+        should only summarize the new setting.
+        If you see a ___CHAPTER_START___ treat this as a context change.
+        {text}
+=======
+>>>>>>> context-propagation
         """
 
         messages = [
@@ -143,7 +157,13 @@ class DeepSeekClient:
         summary_prompt = f"""
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
+<<<<<<< HEAD
+        The context should contain all speakers in the text and the main events. If you assigned your own name to a mystified
+        speaker without official name, make sure to pass on that name.
+        {text}    
+=======
         The context should contain all speakers in the text and the main events.
+>>>>>>> context-propagation
         """
 
         messages = [
