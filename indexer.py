@@ -48,7 +48,7 @@ class SpeechIndexer:
             
             # summarize the context to provide a brief overview of the text for the next chunk
             summary = self.api_client.summarize_context(processed_chunk_text)
-            self.messages.append({"role": "assistant", "content": f"Kontext-Zusammenfassung: {summary}"})
+            self.messages.append({"role": "assistant", "content": f"Content summary: {summary}"})
             return processed_chunk
 
         except json.JSONDecodeError as e:

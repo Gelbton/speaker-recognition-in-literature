@@ -4,7 +4,7 @@ from reparser import Reparser
 from ebooklib import epub
 
 if __name__ == "__main__":
-    epub_file_path = "nebular_reduced.epub"
+    epub_file_path = "no_metadata.epub"
     book = epub.read_epub(epub_file_path)
 
     parser = EpubParser(chunk_size=2000)
