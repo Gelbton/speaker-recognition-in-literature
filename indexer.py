@@ -23,6 +23,8 @@ class SpeechIndexer:
                 )
             }
         ]
+        self.global_speech_index = 0
+        self.global_thought_index = 0
 
     # processes the text by first prescanning it, then tagging speech and thoughts, and finally assigning speakers
     def process_chunk(self, chunk: Chunk) -> Chunk:
@@ -57,22 +59,23 @@ class SpeechIndexer:
 
     # finds and tags speech and thoughts in the text through regex
     def _find_and_tag_speech_and_thoughts(self, chunk: Chunk) -> Chunk:
-        chunk_content = chunk.get_content()
-        speech_pattern = r'»([^»«]+)«'
-        speech_matches = re.finditer(speech_pattern, chunk_content)
+        text = chunk.get_content()
 
-        thought_pattern = r'<em>([^<]+)</em>'
-        thought_matches = re.finditer(thought_pattern, chunk_content)
+        def replace_speech(match):
+            self.global_speech_index += 1
+            return f'<speech index="{self.global_speech_index}">»{match.group(1)}«</speech>'
 
-        modified_text = chunk_content
-        for i, match in enumerate(speech_matches, 1):
-            modified_text = modified_text.replace(match.group(0), f'<speech index="{i}">»{match.group(1)}«</speech>')
+        text = re.sub(r'»([^»«]+)«', replace_speech, text)
 
-        for i, match in enumerate(thought_matches, 1):
-            modified_text = modified_text.replace(match.group(0), f'<em index="{i}">{match.group(1)}</em>')
-        
-        chunk.set_content(modified_text)
+        def replace_thought(match):
+            self.global_thought_index += 1
+            return f'<em index="{self.global_thought_index}">{match.group(1)}</em>'
+
+        text = re.sub(r'<em>([^<]+)</em>', replace_thought, text)
+
+        chunk.set_content(text)
         return chunk
+
 
     # gets the speakers from the API response and apply them to the text
     def _apply_speakers_to_text(self, chunk: Chunk, speakers_json) -> Chunk:
