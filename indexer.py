@@ -12,31 +12,39 @@ class SpeechIndexer:
                 self.api_client = DeepSeekClient()
             case _:
                 raise ValueError("Invalid API client specified.")
-        # messages are used to store the conversation history for the API
-        # the first message is a system message to explain the purpose of the assistant (base prompt)
-        self.messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful assistant for detecting the speakers of direct speech and internal thoughts. "
-                    "Use the provided context to assign the correct speaker to each indexed speech and thought. "
-                )
-            }
-        ]
-        self.global_speech_index = 0
-        self.global_thought_index = 0
+        # base prompt
+        self.base_message = {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant for detecting the speakers of direct speech and internal thoughts. "
+                "Use the provided context to assign the correct speaker to each indexed speech and thought. "
+            )
+        }
+        # initializes the messages array with the base prompt
+        self.messages = [self.base_message]
+        self.blocks = []
+
+    def _update_messages(self):
+        recent_blocks = self.blocks[-5:] # only the last 5 messages get resend in the messages object of the api
+        self.messages = [self.base_message] + [msg for block in recent_blocks for msg in block]
 
     # processes the text by first prescanning it, then tagging speech and thoughts, and finally assigning speakers
     def process_chunk(self, chunk: Chunk) -> Chunk:
+        current_block = []
         chunk_content = chunk.get_content()
-        # prescan the current chunk to extract all speakers and the content
+
+        # prescan the current chunk
         prescan_summary = self.api_client.prescan(chunk_content)
-        self.messages.append({"role": "assistant", "content": f"Occurring speakers in the text: {prescan_summary}"})
+        new_msg = {"role": "assistant", "content": f"Occurring speakers in the text: {prescan_summary}"}
+        self.messages.append(new_msg)
+        current_block.append(new_msg)
 
         # tag speech and thoughts
         tagged_chunk = self._find_and_tag_speech_and_thoughts(chunk)
         tagged_text = tagged_chunk.get_content()
-        self.messages.append({"role": "user", "content": f"Text for speaker detection:\n{tagged_text}"})
+        new_msg = {"role": "user", "content": f"Text for speaker detection:\n{tagged_text}"}
+        self.messages.append(new_msg)
+        current_block.append(new_msg)
 
         # get the speakers from the API response and apply them to the text
         speakers_response = self.api_client.get_speakers(self.messages) # identify speakers in json format
@@ -48,34 +56,40 @@ class SpeechIndexer:
             processed_chunk = self._apply_speakers_to_text(tagged_chunk, speakers_dict)
             processed_chunk_text = processed_chunk.get_content()
             
-            # summarize the context to provide a brief overview of the text for the next chunk
+            # summarize the context for the next chunk
             summary = self.api_client.summarize_context(processed_chunk_text)
-            self.messages.append({"role": "assistant", "content": f"Content summary: {summary}"})
+            new_msg = {"role": "assistant", "content": f"Context-Summary: {summary}"}
+            self.messages.append(new_msg)
+            current_block.append(new_msg)
+            
+            self.blocks.append(current_block)
+            self._update_messages()
             return processed_chunk
 
         except json.JSONDecodeError as e:
             print(f"Could not parse the API answer: {str(e)}")
+            self.blocks.append(current_block)
+            self._update_messages()
             return tagged_chunk
 
     # finds and tags speech and thoughts in the text through regex
     def _find_and_tag_speech_and_thoughts(self, chunk: Chunk) -> Chunk:
-        text = chunk.get_content()
+        chunk_content = chunk.get_content()
+        speech_pattern = r'»([^»«]+)«'
+        speech_matches = re.finditer(speech_pattern, chunk_content)
 
-        def replace_speech(match):
-            self.global_speech_index += 1
-            return f'<speech index="{self.global_speech_index}">»{match.group(1)}«</speech>'
+        thought_pattern = r'<em>([^<]+)</em>'
+        thought_matches = re.finditer(thought_pattern, chunk_content)
 
-        text = re.sub(r'»([^»«]+)«', replace_speech, text)
+        modified_text = chunk_content
+        for i, match in enumerate(speech_matches, 1):
+            modified_text = modified_text.replace(match.group(0), f'<speech index="{i}">»{match.group(1)}«</speech>')
 
-        def replace_thought(match):
-            self.global_thought_index += 1
-            return f'<em index="{self.global_thought_index}">{match.group(1)}</em>'
-
-        text = re.sub(r'<em>([^<]+)</em>', replace_thought, text)
-
-        chunk.set_content(text)
+        for i, match in enumerate(thought_matches, 1):
+            modified_text = modified_text.replace(match.group(0), f'<em index="{i}">{match.group(1)}</em>')
+        
+        chunk.set_content(modified_text)
         return chunk
-
 
     # gets the speakers from the API response and apply them to the text
     def _apply_speakers_to_text(self, chunk: Chunk, speakers_json) -> Chunk:
