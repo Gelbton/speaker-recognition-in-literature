@@ -83,7 +83,7 @@ class OpenAIClient:
 class DeepSeekClient:
     def __init__(self):
         deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
-        self.client = OpenAI(api_key=deepseek_api_key)
+        self.client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
 
     # prescan the text to get the speakers mentioned in it for each chunk
     # the messages contain only the "system" message with the base prompt when prescanning
@@ -100,7 +100,7 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
 
@@ -130,7 +130,7 @@ class DeepSeekClient:
         conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
         response = self.client.chat.completions.create(
             messages=conversation,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
         result = response.choices[0].message.content
@@ -151,7 +151,7 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
         result = response.choices[0].message.content
