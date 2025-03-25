@@ -54,8 +54,7 @@ class OpenAIClient:
         Make sure to identify a speaker for EVERY indexed segment mentioned in the user's message.
         """
         
-        # Füge den speakers_prompt hinzu und erzwinge JSON-Format
-        conversation = list(conversation_history)  # Erstelle eine Kopie
+        conversation = list(conversation_history)
         conversation.append({"role": "system", "content": speakers_prompt})
         
         response = self.client.chat.completions.create(
@@ -119,16 +118,13 @@ class DeepSeekClient:
 
     # get the speakers from the API response
     def get_speakers(self, conversation_history):
-        # In dieser verbesserten Version fragen wir explizit nach jedem gefundenen Index
         
-        # Extrahiere alle vorhandenen Indizes aus dem letzten Benutzer-Prompt
         user_content = ""
         for msg in reversed(conversation_history):
             if msg["role"] == "user":
                 user_content = msg["content"]
                 break
         
-        # Extrahiere die Indizes aus dem Text (einfache Implementation)
         speech_indices = []
         thought_indices = []
         
@@ -140,7 +136,6 @@ class DeepSeekClient:
         for match in re.finditer(thought_pattern, user_content):
             thought_indices.append(match.group(1))
         
-        # Erstelle einen angepassten Prompt, der explizit nach jedem Index fragt
         speakers_prompt = f"""
         Analyze the text and identify the speaker for each of these specific speech and thought segments.
         
@@ -165,11 +160,9 @@ class DeepSeekClient:
         - Include an entry for EVERY index mentioned above
         """
         
-        # Füge den angepassten Prompt zur Konversation hinzu
         conversation = list(conversation_history)
         conversation.append({"role": "system", "content": speakers_prompt})
         
-        # Füge eine zusätzliche direkte Anweisung hinzu (da DeepSeek möglicherweise kein response_format unterstützt)
         conversation.append({
             "role": "user", 
             "content": "Provide your response as a valid JSON object ONLY, with no additional text. Include entries for ALL indices."
