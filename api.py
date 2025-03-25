@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+import re
 
 class OpenAIClient:
     def __init__(self):
