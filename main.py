@@ -1,8 +1,10 @@
+import tkinter as tk
 from epub_book_parser import EpubParser
 from indexer import SpeechIndexer
 from reparser import Reparser 
 from ebooklib import epub
 from all_speakers import AllSpeakers
+from gui import SpeakerAliasUI
 
 if __name__ == "__main__":
     epub_file_path = "nebular_reduced.epub"
@@ -29,5 +31,8 @@ for i, chunk in enumerate(chunks):
 
     print(f"\nChunkgroup {processed_chunk.get_index} Number {i+1}:")    
 
+root = tk.Tk() 
+app = SpeakerAliasUI(root) 
+root.mainloop()
 reparser = Reparser(book, processed_chunks)
 reparser.save("output.epub")

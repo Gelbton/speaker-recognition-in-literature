@@ -180,8 +180,3 @@ class SpeakerAliasUI:
         
         # Return the dictionary
         return self.speaker_groups
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = SpeakerAliasUI(root)
-    root.mainloop()
