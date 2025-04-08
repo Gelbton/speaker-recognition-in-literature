@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import json
+from all_speakers import AllSpeakers
 
 class SpeakerAliasUI:
     def __init__(self, root):
@@ -8,7 +9,7 @@ class SpeakerAliasUI:
         self.root.title("Speaker Alias Manager")
         self.root.geometry("800x600")
         
-        self.speakers = ["Tony", "Schmidt", "Der Brocken", "Sckubidubbadubadub", "Der Holländer"]  # List of all speakers
+        self.speakers = AllSpeakers.all_speakers
         self.speaker_groups = {}  # Dictionary to store speaker groupings
         self.current_group_id = 1
         
@@ -76,6 +77,8 @@ class SpeakerAliasUI:
         
         # Double-click to rename
         self.groups_tree.bind("<Double-1>", lambda event: self.rename_group())
+        print(self.speakers)
+        print(AllSpeakers.all_speakers)
     
     def update_speaker_list(self):
         self.speaker_listbox.delete(0, tk.END)
@@ -176,7 +179,6 @@ class SpeakerAliasUI:
         messagebox.showinfo("Speaker Groups", f"Speaker groups dictionary: {json.dumps(self.speaker_groups, indent=2)}")
         
         # Return the dictionary
-        print(self.speaker_groups)
         return self.speaker_groups
 
 if __name__ == "__main__":
