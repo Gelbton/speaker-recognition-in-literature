@@ -34,5 +34,5 @@ for i, chunk in enumerate(chunks):
 root = tk.Tk() 
 app = SpeakerAliasUI(root) 
 root.mainloop()
-reparser = Reparser(book, processed_chunks)
+reparser = Reparser(book, processed_chunks) #repaser should use the created dict for further speaker annotation
 reparser.save("output.epub")
