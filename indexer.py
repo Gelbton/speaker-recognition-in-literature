@@ -2,6 +2,7 @@ import json
 import re
 from api import OpenAIClient, DeepSeekClient
 from item_chunk import Chunk
+from all_speakers import AllSpeakers
 
 class SpeechIndexer:
     def __init__(self, api_client="openai"):
@@ -67,6 +68,9 @@ class SpeechIndexer:
             speakers_dict.setdefault("thought", {})
             
             self._validate_speaker_names(speakers_dict)
+            
+            AllSpeakers.enrich_speaker_set(speakers_dict["speech"].values())
+            AllSpeakers.enrich_speaker_set(speakers_dict["thought"].values())
             
             processed_chunk = self._replace_all_indexes(tagged_chunk, speakers_dict, speech_indexes, thought_indexes)
             processed_chunk_text = processed_chunk.get_content()
@@ -192,3 +196,4 @@ class SpeechIndexer:
         
         chunk.set_content(text)
         return chunk
+    
