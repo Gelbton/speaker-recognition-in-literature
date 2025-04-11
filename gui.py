@@ -180,3 +180,6 @@ class SpeakerAliasUI:
         
         # Return the dictionary
         return self.speaker_groups
+    
+    def get_final_mapping(self):
+        return self.speaker_groups
