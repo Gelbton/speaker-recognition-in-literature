@@ -14,7 +14,7 @@ class Reparser:
             speaker = match.group(2)
             for group_name, aliases in mapping.items():
                 if speaker in aliases:
-                    return f'<{tag} speaker="{group_name}">'
+                    return f'<{tag} style="background-color:Tomato;" speaker="{group_name}">'
             return match.group(0)
         
         pattern = r'<(speech|em) speaker="([^"]+)">'
