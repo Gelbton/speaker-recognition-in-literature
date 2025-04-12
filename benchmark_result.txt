@@ -1,0 +1,10 @@
+# hier werden die Ergebnisse des jeweiligen Benchmarks festgehalten
+# Kriterien: Accuracy, Preis, Zeit
+
+# context propagation + character summary
+
+# only context propagation
+
+# only character summary
+
+# zero shot
