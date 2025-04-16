@@ -1,17 +1,29 @@
-from itertools import groupby
-from operator import attrgetter
+import re
 import ebooklib
 from ebooklib import epub
 
 class Reparser:
-    def __init__(self, book, chunks):
+    def __init__(self, book, chunks, final_mapping=None):
         self.book = book
         self.chunks = chunks
+        self.final_mapping = final_mapping
+
+    def update_speaker_mapping(self, text, mapping):
+        def repl(match):
+            tag = match.group(1)
+            speaker = match.group(2)
+            for group_name, aliases in mapping.items():
+                if speaker in aliases:
+                    return f'<{tag} style="background-color:Tomato;" speaker="{group_name}">'
+            return match.group(0)
+        
+        pattern = r'<(speech|em) speaker="([^"]+)">'
+        updated_text = re.sub(pattern, repl, text)
+        return updated_text
 
     def reparse(self):
         new_book = self.book
 
-        # Group chunks by item index
         chunk_dict = {}
         for chunk in self.chunks:
             item_index = int(chunk.get_index().split('.')[0])
@@ -29,19 +41,19 @@ class Reparser:
         for i, item in enumerate(html_items):
             print(f"Processing item {i}: {item.file_name}")
 
-            # Find the corresponding chunk group
             chunk_group = chunk_dict.get(i, None)
 
             if chunk_group:
                 print(f"Found chunk group for index {i}")
                 combined_content = ''.join(chunk.get_content() for chunk in chunk_group)
+                if self.final_mapping:
+                    combined_content = self.update_speaker_mapping(combined_content, self.final_mapping)
                 print(f"New content preview: {combined_content[:100]}...")
                 item.set_content(combined_content.encode('utf-8'))
             else:
                 print(f"No chunk group found for index {i}")
 
         return new_book
-
 
     def save(self, output_filename):
         new_book = self.reparse()

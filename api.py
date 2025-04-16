@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+import re
 
 class OpenAIClient:
     def __init__(self):
@@ -7,9 +8,8 @@ class OpenAIClient:
         self.client = OpenAI(api_key=openai_api_key)
 
     # prescan the text to get the speakers mentioned in it for each chunk
-    # the messages contain only the "system" message with the base prompt when prescanning
     def prescan(self, text):
-        prescan_prompt = f"""
+        prescan_prompt = """
         Analyze the following text and identify all mentioned speakers and scenes.
         Return ONLY all the speakers in the text in following format:
         - Speaker 1 (e.g. John Doe)
@@ -30,29 +30,39 @@ class OpenAIClient:
         return result
 
     # get the speakers from the API response
-    # the conversation history contains the base prompt, the prescan message and the text with tagged speech and thoughts for the current chunk with the speakers prompt
     def get_speakers(self, conversation_history):
-        speakers_prompt = f"""
-        Analyze the following text and identify the speaker for each indexed speech and thought.
-        Use the context to assign the correct speaker to each index, the context contains all speakers in the text.
-        - ONLY the text enclosed in <speech index="X">»...«</speech> tags is direct speech. Assign the correct speaker to each index.
-        - Text enclosed in <em index="X">...</em> tags is internal thought. Assign the correct speaker to each index.
-        - Each index must be mapped to a specific speaker based on the context.
-        - If a speaker cannot be identified, use "Unknown".
-        Important: If there are no <speech index="X">»...«</speech> return an empty JS Object for 'speech'.
-        If there are no <em index="X">...</em> return an empty JS Object for 'thought'.
-
-        Return JSON:
-        {{
-            "speech": {{"1": "speaker_name", "2": "speaker_name"}},
-            "thought": {{"1": "speaker_name", "2": "speaker_name"}}
-        }}
+        speakers_prompt = """
+        Analyze the text and identify the speaker for EACH numbered speech and thought segment.
+        
+        IMPORTANT INSTRUCTIONS:
+        - Return a valid JSON object with speech and thought categories
+        - For each index, provide ONLY the name of the speaker or thinker
+        - DO NOT include the word "index" or any other formatting in your response
+        - If you're unsure about a speaker, use "Unknown"
+        
+        Example of CORRECT response format:
+        {
+            "speech": {
+                "1": "John",
+                "2": "Mary",
+                "3": "James"
+            },
+            "thought": {
+                "1": "Sarah"
+            }
+        }
+        
+        Make sure to identify a speaker for EVERY indexed segment mentioned in the user's message.
         """
-        conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
+        
+        conversation = list(conversation_history)
+        conversation.append({"role": "system", "content": speakers_prompt})
+        
         response = self.client.chat.completions.create(
             messages=conversation,
             model="gpt-3.5-turbo",
-            temperature=0.7
+            temperature=0.7,
+            response_format={"type": "json_object"}
         )
         result = response.choices[0].message.content
         print("Get Speakers:", result)
@@ -60,8 +70,8 @@ class OpenAIClient:
 
     # summarize the context to provide a brief overview of the text for the next chunk
     def summarize_context(self, text):
-        summary_prompt = f"""
-        Summarize the following text in one or two short sentences to provide context for the next chunk.
+        summary_prompt = """
+        Summarize the following text in one or two very short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
         The context should contain all speakers in the text and the main events.
         """
@@ -79,16 +89,15 @@ class OpenAIClient:
         print("Summarize Context:", result)
         return result
     
-# DeepSeek API client has the same methods as the OpenAI client
+# DeepSeek API client
 class DeepSeekClient:
     def __init__(self):
         deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
-        self.client = OpenAI(api_key=deepseek_api_key)
+        self.client = OpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com")
 
     # prescan the text to get the speakers mentioned in it for each chunk
-    # the messages contain only the "system" message with the base prompt when prescanning
     def prescan(self, text):
-        prescan_prompt = f"""
+        prescan_prompt = """
         Analyze the following text and identify all mentioned speakers and scenes.
         Return ONLY all the speakers in the text in following format:
         - Speaker 1 (e.g. John Doe)
@@ -100,7 +109,7 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
 
@@ -109,29 +118,60 @@ class DeepSeekClient:
         return result
 
     # get the speakers from the API response
-    # the conversation history contains the base prompt, the prescan message and the text with tagged speech and thoughts for the current chunk with the speakers prompt
     def get_speakers(self, conversation_history):
+        
+        user_content = ""
+        for msg in reversed(conversation_history):
+            if msg["role"] == "user":
+                user_content = msg["content"]
+                break
+        
+        speech_indices = []
+        thought_indices = []
+        
+        speech_pattern = r'<speech index="(\d+)">'
+        for match in re.finditer(speech_pattern, user_content):
+            speech_indices.append(match.group(1))
+            
+        thought_pattern = r'<em index="(\d+)">'
+        for match in re.finditer(thought_pattern, user_content):
+            thought_indices.append(match.group(1))
+        
         speakers_prompt = f"""
-        Analyze the following text and identify the speaker for each indexed speech and thought.
-        Use the context to assign the correct speaker to each index, the context contains all speakers in the text.
-        - ONLY the text enclosed in <speech index="X">»...«</speech> tags is direct speech. Assign the correct speaker to each index.
-        - Text enclosed in <em index="X">...</em> tags is internal thought. Assign the correct speaker to each index.
-        - Each index must be mapped to a specific speaker based on the context.
-        - If a speaker is intentionally mystified, assign a fitting name like "disembodied voice" or "voice from the recording"
-        - If a speaker cannot be identified, use "Unknown".
-        Important: If there are no <speech index="X">»...«</speech> return an empty JS Object for 'speech'.
-        If there are no <em index="X">...</em> return an empty JS Object for 'thought'.
-
-        Return JSON:
+        Analyze the text and identify the speaker for each of these specific speech and thought segments.
+        
+        Speech indices to identify: {', '.join(speech_indices)}
+        Thought indices to identify: {', '.join(thought_indices)}
+        
+        IMPORTANT INSTRUCTIONS:
+        - Return a valid JSON object with the following structure:
         {{
-            "speech": {{"1": "speaker_name", "2": "speaker_name"}},
-            "thought": {{"1": "speaker_name", "2": "speaker_name"}}
+            "speech": {{
+                "1": "Speaker Name",
+                "2": "Another Speaker"
+            }},
+            "thought": {{
+                "1": "Thinker Name"
+            }}
         }}
+        
+        - For each index, provide ONLY the name of the speaker or thinker
+        - DO NOT include the word "index" or any tags in your response
+        - If you're unsure about a speaker, use "Unknown"
+        - Include an entry for EVERY index mentioned above
         """
-        conversation = conversation_history + [{"role": "system", "content": speakers_prompt}]
+        
+        conversation = list(conversation_history)
+        conversation.append({"role": "system", "content": speakers_prompt})
+        
+        conversation.append({
+            "role": "user", 
+            "content": "Provide your response as a valid JSON object ONLY, with no additional text. Include entries for ALL indices."
+        })
+        
         response = self.client.chat.completions.create(
             messages=conversation,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
         result = response.choices[0].message.content
@@ -140,7 +180,7 @@ class DeepSeekClient:
 
     # summarize the context to provide a brief overview of the text for the next chunk
     def summarize_context(self, text):
-        summary_prompt = f"""
+        summary_prompt = """
         Summarize the following text in one or two very short sentences to provide context for the next chunk.
         Do it in the language of the provided text.
         The context should contain all speakers in the text and the main events.
@@ -152,7 +192,7 @@ class DeepSeekClient:
         ]
         response = self.client.chat.completions.create(
             messages=messages,
-            model="gpt-3.5-turbo",
+            model="deepseek-chat",
             temperature=0.7
         )
         result = response.choices[0].message.content
