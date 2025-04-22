@@ -13,8 +13,9 @@ class Reparser:
             tag = match.group(1)
             speaker = match.group(2)
             for group_name, aliases in mapping.items():
+                colour = self.stringToColour(group_name) # simply casts the group name into an individual random colour
                 if speaker in aliases:
-                    return f'<{tag} style="background-color:Tomato;" speaker="{group_name}">'
+                    return f'<{tag} style="background-color:{colour};" speaker="{group_name}">'
             return match.group(0)
         
         pattern = r'<(speech|em) speaker="([^"]+)">'
@@ -58,3 +59,14 @@ class Reparser:
     def save(self, output_filename):
         new_book = self.reparse()
         epub.write_epub(output_filename, new_book)
+
+    def stringToColour(self, string):
+        hash = 0
+        for char in string:
+            hash = ord(char) + ((hash << 5) - hash)
+        colour = '#'
+        for i in range(3):
+            value = (hash >> (i * 8)) & 0xff
+            colour += format(value, '02x')
+        return colour
+
