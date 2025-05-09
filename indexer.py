@@ -101,7 +101,8 @@ class SpeechIndexer:
     def _find_and_tag_speech_and_thoughts(self, chunk: Chunk) -> Chunk:
         chunk_content = chunk.get_content()
         
-        speech_pattern = r'»([^»«]+)«'
+        speech_pattern = r'(?<!<[^>]*)([„“"‚‘‚‘»«›‹])([^„“"‚‘‚‘»«›‹]+?)\1'
+'
         speech_matches = list(re.finditer(speech_pattern, chunk_content))
         
         thought_pattern = r'<em>([^<]+)</em>'
