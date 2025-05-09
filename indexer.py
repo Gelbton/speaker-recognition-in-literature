@@ -1,5 +1,7 @@
 import json
 import re
+
+from bs4 import BeautifulSoup
 from api import OpenAIClient, DeepSeekClient
 from item_chunk import Chunk
 from all_speakers import AllSpeakers
@@ -101,8 +103,17 @@ class SpeechIndexer:
     def _find_and_tag_speech_and_thoughts(self, chunk: Chunk) -> Chunk:
         chunk_content = chunk.get_content()
         
-        speech_pattern = r'(?<!<[^>]*)([„“"‚‘‚‘»«›‹])([^„“"‚‘‚‘»«›‹]+?)\1'
-'
+        soup = BeautifulSoup(chunk_content, "html.parser")
+
+        # Regex für verschiedene Anführungszeichen
+        speech_pattern = r'[„“"‚‘»«›‹]([^„“"‚‘»«›‹]+?)[“"‘’»«›‹]'
+
+        matches = []
+        for text_node in soup.find_all(string=True):
+            # Nur sichtbaren Text durchsuchen (keine reinen Whitespaces)
+            if text_node.parent.name not in ['script', 'style'] and text_node.strip():
+                matches.extend(re.findall(speech_pattern, text_node))
+
         speech_matches = list(re.finditer(speech_pattern, chunk_content))
         
         thought_pattern = r'<em>([^<]+)</em>'
