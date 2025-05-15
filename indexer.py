@@ -104,9 +104,10 @@ class SpeechIndexer:
         chunk_content = chunk.get_content()
         
         soup = BeautifulSoup(chunk_content, "html.parser")
+        raw_text = soup.get_text()
 
-        # Regex für verschiedene Anführungszeichen
-        speech_pattern = r'[„“"‚‘»«›‹]([^„“"‚‘»«›‹]+?)[“"‘’»«›‹]'
+        # Regex für verschiedene Anführungszeichen, einleitende und ausleitende Satzzeichen werden separat erfasst
+        speech_pattern = r'([„“"‚‘»«›‹])([^„“"‚‘»«›‹]+?)([“"‘’»«›‹])'
 
         matches = []
         for text_node in soup.find_all(string=True):
@@ -114,7 +115,7 @@ class SpeechIndexer:
             if text_node.parent.name not in ['script', 'style'] and text_node.strip():
                 matches.extend(re.findall(speech_pattern, text_node))
 
-        speech_matches = list(re.finditer(speech_pattern, chunk_content))
+        speech_matches = list(re.finditer(speech_pattern, raw_text))
         
         thought_pattern = r'<em>([^<]+)</em>'
         thought_matches = list(re.finditer(thought_pattern, chunk_content))
@@ -132,7 +133,8 @@ class SpeechIndexer:
         # tag speech segments with incremental indexes
         for i, match in enumerate(speech_matches, 1):
             original = match.group(0)
-            replacement = f'<speech index="{i}">»{match.group(1)}«</speech>'
+            # Gruppe 1 und Gruppe 3 sind die Anführungszeichen, Gruppe 2 ist der Text
+            replacement = replacement = f'<speech index="{i}">{match.group(1)}{match.group(2)}{match.group(3)}</speech>'
             start_pos = match.start()
             replacements.append((start_pos, original, replacement))
         
