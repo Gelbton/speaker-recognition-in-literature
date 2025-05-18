@@ -99,54 +99,135 @@ class SpeechIndexer:
         pattern = fr'<{tag_type} index="(\d+)">'
         return [int(match.group(1)) for match in re.finditer(pattern, text)]
 
-    # finds and tags speech and thoughts in the text through regex
-    def _find_and_tag_speech_and_thoughts(self, chunk: Chunk) -> Chunk:
+
+    def _find_and_tag_speech_and_thoughts(self, chunk):
         chunk_content = chunk.get_content()
-        
         soup = BeautifulSoup(chunk_content, "html.parser")
-        raw_text = soup.get_text()
 
-        # Regex für verschiedene Anführungszeichen, einleitende und ausleitende Satzzeichen werden separat erfasst
-        speech_pattern = r'([„“"‚‘»«›‹])([^„“"‚‘»«›‹]+?)([“"‘’»«›‹])'
+        # Tag thoughts first
+        soup = self._tag_thoughts_in_html(soup)
 
-        matches = []
-        for text_node in soup.find_all(string=True):
-            # Nur sichtbaren Text durchsuchen (keine reinen Whitespaces)
-            if text_node.parent.name not in ['script', 'style'] and text_node.strip():
-                matches.extend(re.findall(speech_pattern, text_node))
+        # Tag speech across text nodes
+        soup = self._tag_speech_across_text_nodes(soup)
 
-        speech_matches = list(re.finditer(speech_pattern, raw_text))
-        
-        thought_pattern = r'<em>([^<]+)</em>'
-        thought_matches = list(re.finditer(thought_pattern, chunk_content))
-        
-        modified_text = chunk_content
-        replacements = []
-        
-        # tag thoughts with incremental indexes
-        for i, match in enumerate(thought_matches, 1):
-            original = match.group(0)
-            replacement = f'<em index="{i}">{match.group(1)}</em>'
-            start_pos = match.start()
-            replacements.append((start_pos, original, replacement))
-        
-        # tag speech segments with incremental indexes
-        for i, match in enumerate(speech_matches, 1):
-            original = match.group(0)
-            # Gruppe 1 und Gruppe 3 sind die Anführungszeichen, Gruppe 2 ist der Text
-            replacement = replacement = f'<speech index="{i}">{match.group(1)}{match.group(2)}{match.group(3)}</speech>'
-            start_pos = match.start()
-            replacements.append((start_pos, original, replacement))
-        
-        # sort replacements backwards to prevent position shifting
-        replacements.sort(key=lambda x: x[0], reverse=True)
-        
-        # apply replacements to the text
-        for _, original, replacement in replacements:
-            modified_text = modified_text.replace(original, replacement, 1)
-        
-        chunk.set_content(modified_text)
+        chunk.set_content(str(soup))
         return chunk
+
+    def _tag_thoughts_in_html(self, soup):
+        """
+        Tags <em>thoughts</em> with an incremental index attribute.
+        """
+        thought_pattern = r'<em>([^<]+)</em>'
+        def thought_repl(m, c=iter(range(1, 10000))):
+            return f'<em index="{next(c)}">{m.group(1)}</em>'
+        # Apply replacement on the string representation, then re-parse
+        modified_html = re.sub(thought_pattern, thought_repl, str(soup))
+        return BeautifulSoup(modified_html, "html.parser")
+
+    def _get_visible_text_nodes(self, soup):
+        """
+        Returns all visible text nodes (excluding script/style and whitespace).
+        """
+        return [
+            node for node in soup.find_all(string=True)
+            if node.parent.name not in ['script', 'style'] and node.strip()
+        ]
+
+    def _tag_speech_across_text_nodes(self, soup):
+        """
+        Tags speech segments that may span across multiple text nodes.
+        """
+        speech_pattern = r'([„“"‚‘»«›‹])([^„“"‚‘»«›‹]+?)([“"‘’»«›‹])'
+        text_nodes = self._get_visible_text_nodes(soup)
+        speech_index = 1
+        i = 0
+
+        while i < len(text_nodes):
+            node = text_nodes[i]
+            text = str(node)
+            open_pos = self._find_opening_quote(text)
+            if open_pos is not None:
+                # Check for closing quote after opening
+                after_open = text[open_pos+1:]
+                close_pos = self._find_closing_quote(after_open)
+                if close_pos is not None:
+                    # Opening and closing in same node
+                    new_text, speech_index = self._replace_speech_in_text(
+                        text, speech_pattern, speech_index
+                    )
+                    node.replace_with(new_text)
+                    i += 1
+                else:
+                    # Speech spans multiple nodes
+                    combined, nodes_to_replace, j, closing_found = self._gather_until_closing_quote(
+                        text_nodes, i, open_pos
+                    )
+                    if closing_found:
+                        new_combined, speech_index = self._replace_speech_in_text(
+                            combined, speech_pattern, speech_index
+                        )
+                        nodes_to_replace[0].replace_with(new_combined)
+                        for n in nodes_to_replace[1:]:
+                            n.extract()
+                        i = j + 1
+                    else:
+                        i += 1
+            else:
+                i += 1
+        return soup
+
+    def _find_opening_quote(self, text):
+        """
+        Returns the position of the first opening quote or None.
+        """
+        match = re.search(r'[„“"‚‘»«›‹]', text)
+        return match.start() if match else None
+
+    def _find_closing_quote(self, text):
+        """
+        Returns the position of the first closing quote or None.
+        """
+        match = re.search(r'[“"‘’»«›‹]', text)
+        return match.start() if match else None
+
+    def _gather_until_closing_quote(self, text_nodes, start_idx, open_pos):
+        """
+        Gathers text nodes from start_idx onwards until a closing quote is found.
+        Returns the combined text, the involved nodes, the index of the last node, and a flag.
+        """
+        combined = str(text_nodes[start_idx])
+        nodes_to_replace = [text_nodes[start_idx]]
+        j = start_idx + 1
+        closing_found = False
+        while j < len(text_nodes):
+            next_text = str(text_nodes[j])
+            if self._find_closing_quote(next_text) is not None:
+                closing_found = True
+                combined += next_text
+                nodes_to_replace.append(text_nodes[j])
+                break
+            else:
+                combined += next_text
+                nodes_to_replace.append(text_nodes[j])
+            j += 1
+        return combined, nodes_to_replace, j, closing_found
+
+    def _replace_speech_in_text(self, text, speech_pattern, speech_index):
+        """
+        Replaces speech in the given text with <speech> tags, incrementing the index.
+        Returns a BeautifulSoup fragment (not a string!).
+        """
+        def repl(m):
+            nonlocal speech_index
+            tag = f'<speech index="{speech_index}">{m.group(1)}{m.group(2)}{m.group(3)}</speech>'
+            speech_index += 1
+            return tag
+
+        new_text = re.sub(speech_pattern, repl, text)
+        # Parse the result as HTML fragment
+        fragment = BeautifulSoup(new_text, "html.parser")
+        return fragment, speech_index
+
 
     def _extract_json(self, response: str) -> str:
         # extract first JSON object from API response
