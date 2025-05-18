@@ -2,8 +2,10 @@
 # Kriterien: Accuracy, Preis, Zeit
 
 # context propagation + character summary
+- spacehounds: 71%
 
 # only context propagation
+- spacehounds: 61%
 
 # only character summary
 
