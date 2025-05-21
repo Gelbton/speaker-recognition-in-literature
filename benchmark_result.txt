@@ -3,6 +3,7 @@
 
 # context propagation + character summary
 - spacehounds: 71%, 70%
+- spacehounds: 87% (4o-model)
 
 # only context propagation
 - spacehounds: 61%
