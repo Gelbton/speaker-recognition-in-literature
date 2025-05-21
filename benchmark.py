@@ -124,5 +124,5 @@ if __name__ == "__main__":
     print("Report:")
     print(json.dumps(bm.generate_report(), indent=2))
 
-    print("\n Speech tags:")
-    print(json.dumps(bm.compare_tags()[:40], indent=2))
+    #print("\n Speech tags:")
+    #print(json.dumps(bm.compare_tags()[:40], indent=2))

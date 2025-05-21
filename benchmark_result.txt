@@ -1,13 +1,18 @@
 # hier werden die Ergebnisse des jeweiligen Benchmarks festgehalten
 # Kriterien: Accuracy, Preis, Zeit
 
+
+spacehounds:
 # context propagation + character summary
-- spacehounds: 71%, 70%
-- spacehounds: 87% (4o-model)
+- 71%, 70%
+- 87%, 86% (4o-model)
 
 # only context propagation
-- spacehounds: 61%
+- 61%
+- 79.5% (4o-model)
 
-# only character summary
+# only character summary 
+- 79.5% (4o-model) <- größere Generierung an Aliasen trotz selben accuracy
 
 # zero shot
+- 75% (4o-model)

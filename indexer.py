@@ -42,9 +42,9 @@ class SpeechIndexer:
         retrieves speaker names via LLM and replaces the index attributes
         by speaker attributes.
         """
+        current_block: list[dict] = []
         # ----------------------------------------------------------------- #
         # 0. prescan for obvious speaker names
-        current_block: list[dict] = []
         chunk_content = chunk.get_content()
         try:
             prescan_summary = self.api_client.prescan(chunk_content)
@@ -58,7 +58,6 @@ class SpeechIndexer:
         }
         self.messages.append(prescan_msg)
         current_block.append(prescan_msg)
-
         # ----------------------------------------------------------------- #
         # 1. tag speech & thoughts
         tagged_chunk = self._find_and_tag_speech_and_thoughts(chunk)
