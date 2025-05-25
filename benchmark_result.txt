@@ -1,11 +1,12 @@
 # hier werden die Ergebnisse des jeweiligen Benchmarks festgehalten
 # Kriterien: Accuracy, Preis, Zeit
 
-
+Auffällig: - 4.1-nano sehr viel schlechter.
+           - teilweise wurde Tellus als ein Sprechername erkannt -> Science Fiction Namen sind schwer zu handeln
 spacehounds:
 # context propagation + character summary
 - 71%, 70%
-- 87%, 86% (4o-model)
+- 87%, 86%, 88,5% without "Unknown" (4o-model)
 
 # only context propagation
 - 61%
