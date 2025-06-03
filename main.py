@@ -6,7 +6,7 @@ from reparser import Reparser
 from gui import SpeakerAliasUI
 
 def main():
-    epub_file_path = "raw-no-meta-sh.epub"
+    epub_file_path = "nebular_copy.epub"
     book = epub.read_epub(epub_file_path)
     parser = EpubParser(chunk_size=2000)
     chunks = parser.parse(book)

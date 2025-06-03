@@ -3,6 +3,15 @@
 
 Auffällig: - 4.1-nano sehr viel schlechter.
            - teilweise wurde Tellus als ein Sprechername erkannt -> Science Fiction Namen sind schwer zu handeln
+
+nebular:
+(erst ein einfacherer dialoglastiger Abschnitt, viel Gespräch zwischen zwei Personen -> sehr gute Accuracy, trotzdem Verbesserung von 5% mit context propagation und speaker propagation)
+# context propagation + character summary
+- 99% (4o-model)
+
+# zero shot
+- 95% (4o-model)
+
 spacehounds:
 # context propagation + character summary
 - 71%, 70%

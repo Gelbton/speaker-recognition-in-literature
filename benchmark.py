@@ -119,7 +119,7 @@ class EpubBenchmark:
 
 # ---------------------------main----------------------------------- #
 if __name__ == "__main__":
-    bm = EpubBenchmark("groundtruth-spacehounds.epub", "output.epub")
+    bm = EpubBenchmark("new_ground_truth.epub", "output.epub")
 
     print("Report:")
     print(json.dumps(bm.generate_report(), indent=2))

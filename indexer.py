@@ -44,9 +44,9 @@ class SpeechIndexer:
         """
         current_block: list[dict] = []
         # ----------------------------------------------------------------- #
-        # 0. prescan for obvious speaker names
+        # 0. prescan for obvious speaker names, comment out for benchmarking
         chunk_content = chunk.get_content()
-        try:
+        """try:
             prescan_summary = self.api_client.prescan(chunk_content)
         except Exception as err:
             prescan_summary = "n/a"
@@ -57,13 +57,13 @@ class SpeechIndexer:
             "content": f"Occurring speakers in the text: {prescan_summary}",
         }
         self.messages.append(prescan_msg)
-        current_block.append(prescan_msg)
+        current_block.append(prescan_msg)"""
         # ----------------------------------------------------------------- #
         # 1. tag speech & thoughts
         tagged_chunk = self._find_and_tag_speech_and_thoughts(chunk)
 
         # (EARLY RETURN – for debugging only)
-        # return tagged_chunk
+        #return tagged_chunk
 
         # ----------------------------------------------------------------- #
         # 2. ask the model for speakers
@@ -105,8 +105,9 @@ class SpeechIndexer:
             )
 
             # ----------------------------------------------------------------- #
-            # 4. summarise context for next chunk
-            summary = self.api_client.summarize_context(processed_chunk.get_content())
+            # 4. summarise context for next chunk, comment out for benchmarking
+            
+            """summary = self.api_client.summarize_context(processed_chunk.get_content())
             assistant_msg = {
                 "role": "assistant",
                 "content": f"Context-Summary: {summary}",
@@ -116,7 +117,7 @@ class SpeechIndexer:
 
             # update rolling context
             self.blocks.append(current_block)
-            self._update_messages()
+            self._update_messages()"""
 
             return processed_chunk
 
