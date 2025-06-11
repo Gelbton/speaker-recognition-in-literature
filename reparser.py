@@ -60,13 +60,15 @@ class Reparser:
         new_book = self.reparse()
         epub.write_epub(output_filename, new_book)
 
-    def stringToColour(self, string):
-        hash = 0
-        for char in string:
-            hash = ord(char) + ((hash << 5) - hash)
-        colour = '#'
-        for i in range(3):
-            value = (hash >> (i * 8)) & 0xff
-            colour += format(value, '02x')
-        return colour
+def stringToHighlighterColour(self, string):
+    hash = 0
+    for char in string:
+        hash = ord(char) + ((hash << 5) - hash)
+    colour = '#'
+    for i in range(3):
+        value = (hash >> (i * 8)) & 0xff
+        # Skaliere den Wert in den Bereich 180–255 (sehr hell)
+        value = int(180 + (value / 255) * (255 - 180))
+        colour += format(value, '02x')
+    return colour
 
