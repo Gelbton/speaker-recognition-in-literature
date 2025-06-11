@@ -21,7 +21,8 @@ class Reparser:
         pattern = r'<(speech|em) speaker="([^"]+)">'
         updated_text = re.sub(pattern, repl, text)
         return updated_text
-
+    
+    # Parses the book and updates the content of each HTML item with the combined content of its chunks
     def reparse(self):
         new_book = self.book
 
@@ -55,20 +56,21 @@ class Reparser:
                 print(f"No chunk group found for index {i}")
 
         return new_book
-
+    
+    # Saves the modified book to a new EPUB file
     def save(self, output_filename):
         new_book = self.reparse()
         epub.write_epub(output_filename, new_book)
 
-def stringToHighlighterColour(self, string):
-    hash = 0
-    for char in string:
-        hash = ord(char) + ((hash << 5) - hash)
-    colour = '#'
-    for i in range(3):
-        value = (hash >> (i * 8)) & 0xff
-        # Skaliere den Wert in den Bereich 180–255 (sehr hell)
-        value = int(180 + (value / 255) * (255 - 180))
-        colour += format(value, '02x')
-    return colour
+    def stringToColour(self, string):
+        hash = 0
+        for char in string:
+            hash = ord(char) + ((hash << 5) - hash)
+        colour = '#'
+        for i in range(3):
+            value = (hash >> (i * 8)) & 0xff
+            # scale colour value to high range to get legible colours
+            value = int(180 + (value / 255) * (255 - 180))
+            colour += format(value, '02x')
+        return colour
 

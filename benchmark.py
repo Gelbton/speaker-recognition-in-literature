@@ -4,6 +4,7 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 
+# the part to modify in order to run the benchmark is at the bottom of this file
 
 class EpubBenchmark:
     # ------------------------------------------------------------------ #
@@ -118,6 +119,11 @@ class EpubBenchmark:
         return rows
 
 # ---------------------------main----------------------------------- #
+# how to run the benchmark script:
+# 1. Make sure you have a ground truth EPUB file with the expected speaker tags.
+# 2. Make sure you have a test EPUB file with the output of this program (default output.epub).
+# 3. Pass them in the constructor of EpubBenchmark and then run the script.
+
 if __name__ == "__main__":
     bm = EpubBenchmark("new_ground_truth.epub", "output.epub")
 
